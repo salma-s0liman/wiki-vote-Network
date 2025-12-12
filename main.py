@@ -698,7 +698,8 @@ elif page == "👑 Power & Roles (Centrality)":
         with st.spinner("🔄 Calculating Centrality Metrics (PageRank, Betweenness, Closeness)..."):
             progress_bar = st.progress(0)
             
-            in_degree = nx.in_degree_centrality(G)
+            # Use actual degree counts (integers) instead of normalized centrality
+            in_degree = dict(G.in_degree())
             progress_bar.progress(25)
             
             pagerank = nx.pagerank(G, alpha=0.85)
@@ -707,9 +708,13 @@ elif page == "👑 Power & Roles (Centrality)":
             betweenness = nx.betweenness_centrality(G, k=1000)  # Sample for speed
             progress_bar.progress(75)
             
-            # Closeness on a sample for speed
-            out_degree = nx.out_degree_centrality(G)
+            # Use actual degree counts (integers) instead of normalized centrality
+            out_degree = dict(G.out_degree())
             progress_bar.progress(100)
+            
+            # Scale PageRank and Betweenness by 100,000 to get whole numbers
+           # pagerank = {k: int(v * 100000) for k, v in pagerank.items()}
+           # betweenness = {k: int(v * 100000) for k, v in betweenness.items()}
             
             st.session_state.centrality_df = pd.DataFrame({
                 'In-Degree': in_degree,
@@ -725,10 +730,10 @@ elif page == "👑 Power & Roles (Centrality)":
     <div class='insight-box'>
         <h4>🎯 Understanding Centrality Metrics:</h4>
         <ul>
-            <li><strong>In-Degree Centrality:</strong> Direct popularity - how many votes you received</li>
+            <li><strong>In-Degree:</strong> Direct popularity - actual number of votes you received</li>
             <li><strong>PageRank:</strong> Quality of connections - being voted by important people</li>
-            <li><strong>Betweenness Centrality:</strong> Bridge role - how often you connect different groups</li>
-            <li><strong>Out-Degree Centrality:</strong> Activity level - how many people you voted for</li>
+            <li><strong>Betweenness:</strong> Bridge role - how often you connect different groups</li>
+            <li><strong>Out-Degree:</strong> Activity level - actual number of people you voted for</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
@@ -739,19 +744,19 @@ elif page == "👑 Power & Roles (Centrality)":
     tab1, tab2, tab3, tab4 = st.tabs(["👑 Most Popular", "⭐ Most Influential", "🌉 Best Brokers", "🗳️ Most Active"])
     
     with tab1:
-        st.markdown("### 🏆 Top 15 by In-Degree Centrality")
-        st.caption("Users with the most direct votes - the most popular/trusted")
+        st.markdown("### 🏆 Top 15 by In-Degree (Vote Count)")
+        st.caption("Users with the most direct votes received - the most popular/trusted")
         
         top_in = df_metrics.nlargest(15, 'In-Degree')
         top_in_reset = top_in.reset_index()
         top_in_reset.columns = ['User ID', 'In-Degree', 'Out-Degree', 'PageRank', 'Betweenness']
         
         fig1 = px.bar(top_in_reset, x='User ID', y='In-Degree',
-                      title='Top 15 Users by In-Degree Centrality',
+                      title='Top 15 Users by In-Degree (Vote Count)',
                       color='In-Degree',
                       color_continuous_scale='Blues',
                       text='In-Degree')
-        fig1.update_traces(texttemplate='%{text:.4f}', textposition='outside')
+        fig1.update_traces(texttemplate='%{text:.0f}', textposition='outside')
         fig1.update_layout(height=500)
         st.plotly_chart(fig1, use_container_width=True)
         
@@ -766,11 +771,11 @@ elif page == "👑 Power & Roles (Centrality)":
         top_pr_reset.columns = ['User ID', 'In-Degree', 'Out-Degree', 'PageRank', 'Betweenness']
         
         fig2 = px.bar(top_pr_reset, x='User ID', y='PageRank',
-                      title='Top 15 Users by PageRank',
+                      title='Top 15 Users by PageRank Score',
                       color='PageRank',
                       color_continuous_scale='Viridis',
                       text='PageRank')
-        fig2.update_traces(texttemplate='%{text:.6f}', textposition='outside')
+        fig2.update_traces(texttemplate='%{text:.0f}', textposition='outside')
         fig2.update_layout(height=500)
         st.plotly_chart(fig2, use_container_width=True)
         
@@ -785,30 +790,30 @@ elif page == "👑 Power & Roles (Centrality)":
         top_bt_reset.columns = ['User ID', 'In-Degree', 'Out-Degree', 'PageRank', 'Betweenness']
         
         fig3 = px.bar(top_bt_reset, x='User ID', y='Betweenness',
-                      title='Top 15 Users by Betweenness Centrality',
+                      title='Top 15 Users by Betweenness Score',
                       color='Betweenness',
                       color_continuous_scale='Plasma',
                       text='Betweenness')
-        fig3.update_traces(texttemplate='%{text:.6f}', textposition='outside')
+        fig3.update_traces(texttemplate='%{text:.0f}', textposition='outside')
         fig3.update_layout(height=500)
         st.plotly_chart(fig3, use_container_width=True)
         
         st.dataframe(top_bt_reset[['User ID', 'Betweenness']], use_container_width=True, hide_index=True)
     
     with tab4:
-        st.markdown("### 🗳️ Top 15 by Out-Degree Centrality")
-        st.caption("Most active voters - highly engaged users")
+        st.markdown("### 🗳️ Top 15 by Out-Degree (Vote Count)")
+        st.caption("Most active voters - highly engaged users (votes cast)")
         
         top_out = df_metrics.nlargest(15, 'Out-Degree')
         top_out_reset = top_out.reset_index()
         top_out_reset.columns = ['User ID', 'In-Degree', 'Out-Degree', 'PageRank', 'Betweenness']
         
         fig4 = px.bar(top_out_reset, x='User ID', y='Out-Degree',
-                      title='Top 15 Users by Out-Degree Centrality',
+                      title='Top 15 Users by Out-Degree (Vote Count)',
                       color='Out-Degree',
                       color_continuous_scale='Sunset',
                       text='Out-Degree')
-        fig4.update_traces(texttemplate='%{text:.4f}', textposition='outside')
+        fig4.update_traces(texttemplate='%{text:.0f}', textposition='outside')
         fig4.update_layout(height=500)
         st.plotly_chart(fig4, use_container_width=True)
         
